@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<body>
+<h3>Kubernetes Secret Generator</h3>
+
+<label for="ns">Namespace: </label><input id="ns" value="elektraweb"><br>
+<hr>
+<label for="user">Username: </label><input id="user" value="talyabilisim"><br>
+<label for="em">Email: </label><input id="em" value="a@a.com"><br>
+<label for="tok">Token: </label><input id="tok" placeholder="Token"><br>
+<hr>
+
+
+<button onclick="g()">Generate</button>
+<button onclick="c()" id="cb" style="display:none">Copy YAML</button><br><br>
+
+<label for="o">Kubernetes Secret (YAML)</label><br>
+<textarea id="o" rows="12" cols="100" disabled style="display:none"></textarea><br><br>
+
+<label for="decoded">Decoded .dockerconfigjson</label><br>
+<textarea id="decoded" rows="10" cols="100" disabled style="display:none"></textarea><br><br>
+
+<label for="authstr" style="display: none">Auth String (username:token)</label><br>
+<textarea id="authstr" rows="1" cols="100" disabled style="display:none"></textarea><br><br>
+
+<script>
+    function g() {
+        const u = user.value, t = tok.value, e = em.value, n = ns.value;
+        const authRaw = u + ':' + t;
+        const authB64 = btoa(authRaw);
+        const dockerconfig = {
+            auths: {
+                "https://ghcr.io": {
+                    username: u,
+                    password: t,
+                    email: e,
+                    auth: authB64
+                }
+            }
+        };
+        const j = btoa(JSON.stringify(dockerconfig));
+
+        o.value = `apiVersion: v1
+kind: Secret
+metadata:
+  name: regcred
+  namespace: ${n}
+data:
+  .dockerconfigjson: >-
+    ${j}
+type: kubernetes.io/dockerconfigjson`;
+
+        o.style.display = 'inline-block';
+        cb.style.display = 'inline-block';
+        decoded.style.display = 'inline-block';
+        // authstr.style.display = 'inline-block';
+
+        decoded.value = JSON.stringify(dockerconfig, null, 2);
+        authstr.value = authRaw;
+    }
+
+    function c() {
+        o.disabled = false;
+        o.select();
+        document.execCommand('copy');
+        o.disabled = true;
+        cb.textContent = 'Copied!';
+        setTimeout(() => cb.textContent = 'Copy', 1500);
+    }
+</script>
+</body>
+</html>
